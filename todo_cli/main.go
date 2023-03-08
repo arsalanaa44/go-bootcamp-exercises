@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type User struct {
@@ -14,16 +15,23 @@ type User struct {
 	Password string
 }
 type Task struct {
-	ID       int
-	Title    string
-	DueDate  string
-	Category string
-	IsDone   bool
-	UserID   int
+	ID         int
+	Title      string
+	DueDate    string
+	CategoryID int
+	IsDone     bool
+	UserID     int
+}
+type Category struct {
+	ID     int
+	Title  string
+	Color  string
+	userID int
 }
 
 var userStorage []User
 var taskStorage []Task
+var categoryStorage []Category
 var authenticatedUser *User
 
 func main() {
@@ -41,7 +49,6 @@ func main() {
 		*command = scanner.Text()
 
 	}
-	fmt.Printf("userStrage : %+v", userStorage)
 
 }
 
@@ -99,17 +106,32 @@ func createTask() {
 	scanner.Scan()
 	dueDate = scanner.Text()
 
-	fmt.Println("please enter the task category")
+	fmt.Println("please enter the task category-ID")
 	scanner.Scan()
 	category = scanner.Text()
+	categoryID, e := strconv.Atoi(category)
+	if e == nil {
+		fmt.Println("category-ID is not valid integer", e)
+	}
 
+	notFound := true
+	for _, c := range categoryStorage {
+		if c.ID == categoryID && c.userID == authenticatedUser.ID {
+			notFound = false
+
+			break
+		}
+	}
+	if notFound {
+		fmt.Println("category-ID is not valid", e)
+	}
 	task := Task{
-		ID:       len(taskStorage) + 1,
-		Title:    title,
-		DueDate:  dueDate,
-		Category: category,
-		IsDone:   false,
-		UserID:   authenticatedUser.ID,
+		ID:         len(taskStorage) + 1,
+		Title:      title,
+		DueDate:    dueDate,
+		CategoryID: categoryID,
+		IsDone:     false,
+		UserID:     authenticatedUser.ID,
 	}
 
 	taskStorage = append(taskStorage, task)
@@ -131,6 +153,14 @@ func createCategory() {
 	color = scanner.Text()
 
 	fmt.Println("category: ", title, color)
+
+	category := Category{
+		ID:     len(categoryStorage) + 1,
+		Title:  title,
+		Color:  color,
+		userID: authenticatedUser.ID,
+	}
+	categoryStorage = append(categoryStorage, category)
 
 }
 
