@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type User struct {
@@ -34,10 +35,15 @@ var taskStorage []Task
 var categoryStorage []Category
 var authenticatedUser *User
 
+const userStoragePath = "user.txt"
+
 func main() {
 
 	loadUserStorageFromFile()
 
+	for _, u := range userStorage {
+		fmt.Printf("%+v\n", u)
+	}
 	fmt.Println("hello to TODO app")
 	command := flag.String("command", "no command", "command to run")
 	flag.Parse()
@@ -56,6 +62,7 @@ func main() {
 
 func runCommand(command string) {
 	if command != "register-user" && command != "login" && command != "exit" && authenticatedUser == nil {
+		fmt.Println("you should log in first !")
 		login()
 		if authenticatedUser == nil {
 
@@ -170,6 +177,7 @@ func createCategory() {
 }
 
 func registerUser() {
+
 	scanner := bufio.NewScanner(os.Stdin)
 	var name, email, password string
 
@@ -196,8 +204,7 @@ func registerUser() {
 	}
 	userStorage = append(userStorage, user)
 
-	path := "user.txt"
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	file, err := os.OpenFile(userStoragePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		fmt.Println("open-file error :", err)
 
@@ -248,5 +255,61 @@ func listTask() {
 }
 
 func loadUserStorageFromFile() {
-	
+	file, er := os.Open(userStoragePath)
+	if er != nil {
+		fmt.Println(userStoragePath, "doesn't exist")
+
+		return
+	}
+	defer file.Close()
+
+	data := make([]byte, 1024)
+	file.Read(data)
+
+	dataStr := string(data)
+	userSlice := strings.Split(dataStr, "\n")
+
+	for _, u := range userSlice[:len(userSlice)-1] {
+		fmt.Println(len(u))
+		var user User
+		u = strings.ReplaceAll(u, " ", "")
+		userFields := strings.Split(u, ",")
+		for _, userField := range userFields {
+			field := strings.Split(userField, ":")
+			if len(field) < 2 {
+
+				continue
+			}
+			fieldName := field[0]
+			fieldValue := field[1]
+			switch fieldName {
+			case "ID":
+				{
+					var err error
+					user.ID, err = strconv.Atoi(fieldValue)
+					if err != nil {
+						fmt.Println(err)
+					}
+				}
+			case "name":
+				{
+					user.Name = fieldValue
+				}
+			case "password":
+				{
+					user.Password = fieldValue
+				}
+			case "email":
+				{
+					user.Email = fieldValue
+				}
+			default:
+				{
+					fmt.Println("hacker detected")
+				}
+			}
+		}
+		userStorage = append(userStorage, user)
+	}
+
 }
