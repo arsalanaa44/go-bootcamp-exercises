@@ -36,6 +36,8 @@ var authenticatedUser *User
 
 func main() {
 
+	loadUserStorageFromFile()
+
 	fmt.Println("hello to TODO app")
 	command := flag.String("command", "no command", "command to run")
 	flag.Parse()
@@ -81,7 +83,7 @@ func runCommand(command string) {
 		}
 	case "login":
 		{
-
+			login()
 		}
 	case "exit":
 		{
@@ -110,8 +112,10 @@ func createTask() {
 	scanner.Scan()
 	category = scanner.Text()
 	categoryID, e := strconv.Atoi(category)
-	if e == nil {
+	if e != nil {
 		fmt.Println("category-ID is not valid integer", e)
+
+		return
 	}
 
 	notFound := true
@@ -124,6 +128,7 @@ func createTask() {
 	}
 	if notFound {
 		fmt.Println("category-ID is not valid", e)
+		return
 	}
 	task := Task{
 		ID:         len(taskStorage) + 1,
@@ -191,6 +196,18 @@ func registerUser() {
 	}
 	userStorage = append(userStorage, user)
 
+	path := "user.txt"
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		fmt.Println("open-file error :", err)
+
+		return
+	}
+	defer file.Close()
+	data := fmt.Sprintf("ID: %d, name: %s, email: %s, password: %s\n",
+		user.ID, user.Name, user.Email, user.Password)
+	file.Write([]byte(data))
+
 }
 
 func login() {
@@ -216,7 +233,7 @@ func login() {
 		}
 	}
 	if authenticatedUser == nil {
-		fmt.Println("email or password is in correct")
+		fmt.Println("email or password is incorrect")
 	}
 
 }
@@ -228,4 +245,8 @@ func listTask() {
 			fmt.Printf("%+v\n", task)
 		}
 	}
+}
+
+func loadUserStorageFromFile() {
+	
 }
