@@ -40,10 +40,10 @@ const userStoragePath = "user.txt"
 func main() {
 
 	loadUserStorageFromFile()
-
 	for _, u := range userStorage {
 		fmt.Printf("%+v\n", u)
 	}
+
 	fmt.Println("hello to TODO app")
 	command := flag.String("command", "no command", "command to run")
 	flag.Parse()
@@ -204,16 +204,7 @@ func registerUser() {
 	}
 	userStorage = append(userStorage, user)
 
-	file, err := os.OpenFile(userStoragePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		fmt.Println("open-file error :", err)
-
-		return
-	}
-	defer file.Close()
-	data := fmt.Sprintf("ID: %d, name: %s, email: %s, password: %s\n",
-		user.ID, user.Name, user.Email, user.Password)
-	file.Write([]byte(data))
+	writeToFile(user)
 
 }
 
@@ -312,4 +303,16 @@ func loadUserStorageFromFile() {
 		userStorage = append(userStorage, user)
 	}
 
+}
+func writeToFile(user User) {
+	file, err := os.OpenFile(userStoragePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		fmt.Println("open-file error :", err)
+
+		return
+	}
+	defer file.Close()
+	data := fmt.Sprintf("ID: %d, name: %s, email: %s, password: %s\n",
+		user.ID, user.Name, user.Email, user.Password)
+	file.Write([]byte(data))
 }
