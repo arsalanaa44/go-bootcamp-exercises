@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -30,12 +31,19 @@ type Category struct {
 	userID int
 }
 
-var userStorage []User
-var taskStorage []Task
-var categoryStorage []Category
-var authenticatedUser *User
+var (
+	userStorage       []User
+	taskStorage       []Task
+	categoryStorage   []Category
+	authenticatedUser *User
+	serializationMode string
+)
 
-const userStoragePath = "user.txt"
+const (
+	userStoragePath               = "user.txt"
+	MandaravardiSerializationMode = "mandaravardi"
+	JsonSerializationMode         = "json"
+)
 
 func main() {
 
@@ -45,9 +53,21 @@ func main() {
 	}
 
 	fmt.Println("hello to TODO app")
+
 	command := flag.String("command", "no command", "command to run")
+	serializeMode := flag.String("serialization-mode", JsonSerializationMode, "serialization mode to write data to file")
 	flag.Parse()
 
+	switch *serializeMode {
+	case MandaravardiSerializationMode:
+		{
+			serializationMode = MandaravardiSerializationMode
+		}
+	default:
+		{
+			serializationMode = JsonSerializationMode
+		}
+	}
 	for {
 		runCommand(*command)
 
@@ -204,7 +224,7 @@ func registerUser() {
 	}
 	userStorage = append(userStorage, user)
 
-	writeToFile(user)
+	writeUserToFile(user)
 
 }
 
@@ -260,51 +280,29 @@ func loadUserStorageFromFile() {
 	dataStr := string(data)
 	userSlice := strings.Split(dataStr, "\n")
 
-	for _, u := range userSlice[:len(userSlice)-1] {
-		fmt.Println(len(u))
+	for _, u := range userSlice {
+		if u == "" {
+
+			continue
+		}
 		var user User
-		u = strings.ReplaceAll(u, " ", "")
-		userFields := strings.Split(u, ",")
-		for _, userField := range userFields {
-			field := strings.Split(userField, ":")
-			if len(field) < 2 {
+		if serializationMode == MandaravardiSerializationMode {
+			user, _ = deserializeFormMandaravardi(u)
+		} else {
+			var jErr error
+			jErr = json.Unmarshal([]byte(u), &user)
+			if jErr != nil {
+				fmt.Println("error in unmarshalization !", jErr)
 
 				continue
 			}
-			fieldName := field[0]
-			fieldValue := field[1]
-			switch fieldName {
-			case "ID":
-				{
-					var err error
-					user.ID, err = strconv.Atoi(fieldValue)
-					if err != nil {
-						fmt.Println(err)
-					}
-				}
-			case "name":
-				{
-					user.Name = fieldValue
-				}
-			case "password":
-				{
-					user.Password = fieldValue
-				}
-			case "email":
-				{
-					user.Email = fieldValue
-				}
-			default:
-				{
-					fmt.Println("hacker detected")
-				}
-			}
 		}
 		userStorage = append(userStorage, user)
-	}
 
+	}
 }
-func writeToFile(user User) {
+func writeUserToFile(user User) {
+
 	file, err := os.OpenFile(userStoragePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		fmt.Println("open-file error :", err)
@@ -312,7 +310,59 @@ func writeToFile(user User) {
 		return
 	}
 	defer file.Close()
-	data := fmt.Sprintf("ID: %d, name: %s, email: %s, password: %s\n",
-		user.ID, user.Name, user.Email, user.Password)
-	file.Write([]byte(data))
+
+	var data []byte
+	if serializationMode == MandaravardiSerializationMode {
+		data = []byte(fmt.Sprintf("\nID: %d, name: %s, email: %s, password: %s",
+			user.ID, user.Name, user.Email, user.Password))
+	} else if serializationMode == JsonSerializationMode {
+		var er error
+		data, er = json.Marshal(user)
+		if er != nil {
+			fmt.Println("can't marshal user to json", er)
+		}
+	}
+	data = append(data, 10)
+	file.Write(data)
+}
+func deserializeFormMandaravardi(userStr string) (User, error) {
+	var user User
+	userStr = strings.ReplaceAll(userStr, " ", "")
+	userFields := strings.Split(userStr, ",")
+	for _, userField := range userFields {
+		field := strings.Split(userField, ":")
+		if len(field) < 2 {
+
+			continue
+		}
+		fieldName := field[0]
+		fieldValue := field[1]
+		switch fieldName {
+		case "ID":
+			{
+				var err error
+				user.ID, err = strconv.Atoi(fieldValue)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+		case "name":
+			{
+				user.Name = fieldValue
+			}
+		case "password":
+			{
+				user.Password = fieldValue
+			}
+		case "email":
+			{
+				user.Email = fieldValue
+			}
+		default:
+			{
+				fmt.Println("hacker detected")
+			}
+		}
+	}
+	return user, nil
 }
