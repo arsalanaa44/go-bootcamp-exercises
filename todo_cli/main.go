@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	//go get
+	"golang.org/x/crypto/bcrypt"
 	"os"
 	"strconv"
 	"strings"
@@ -154,7 +156,7 @@ func createTask() {
 		}
 	}
 	if notFound {
-		fmt.Println("category-ID is not valid", e)
+		fmt.Println("category-ID is not valid")
 		return
 	}
 	task := Task{
@@ -213,7 +215,8 @@ func registerUser() {
 	scanner.Scan()
 	password = scanner.Text()
 
-	fmt.Println("registered", email, password)
+	password = hashThePassword(password)
+	fmt.Println(name, "registered")
 
 	id := len(userStorage) + 1
 	user := User{
@@ -241,13 +244,15 @@ func login() {
 	fmt.Println("please enter the user password")
 	scanner.Scan()
 	password = scanner.Text()
-
 	for _, user := range userStorage {
-		if user.Password == password && user.Email == email {
-			authenticatedUser = &user
-			fmt.Println("user login :", email, password)
+		if user.Email == email {
+			er := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+			if er == nil {
+				authenticatedUser = &user
+				fmt.Println("user login :", user.Name)
 
-			break
+				break
+			}
 		}
 	}
 	if authenticatedUser == nil {
@@ -292,7 +297,7 @@ func loadUserStorageFromFile() {
 			var jErr error
 			jErr = json.Unmarshal([]byte(u), &user)
 			if jErr != nil {
-				fmt.Println("error in unmarshalization !", jErr)
+				fmt.Println("error in Unmarshalization !", jErr)
 
 				continue
 			}
@@ -322,7 +327,7 @@ func writeUserToFile(user User) {
 			fmt.Println("can't marshal user to json", er)
 		}
 	}
-	data = append(data, 10)
+	data = append(data, '\n')
 	file.Write(data)
 }
 func deserializeFormMandaravardi(userStr string) (User, error) {
@@ -365,4 +370,11 @@ func deserializeFormMandaravardi(userStr string) (User, error) {
 		}
 	}
 	return user, nil
+}
+func hashThePassword(pass string) string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return string(hash)
 }

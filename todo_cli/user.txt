@@ -1,12 +1,5 @@
 
 ID: 1, name: m, email: mm, password: mmm
-ID: 2, name: c, email: cc, password: ccc
-ID: 3, name: kdfjn, email: sdf, password: sdf<, ljifdj: fdkj
-{"ID":4,"Name":"s","Email":"ss","Password":"sss"}
-{"ID":5,"Name":"h","Email":"hhh","Password":"hhhh"}
-{"ID":3,"Name":"j","Email":"jj","Password":"jjj"}
-{"ID":4,"Name":"l","Email":"ll","Password":"lll"}
-{"ID":5,"Name":"o","Email":"oo","Password":"ooo"}
-{"ID":6,"Name":"t","Email":"tt","Password":"ttt"}
-{"ID":7,"Name":"u","Email":"uu","Password":"uuu"}
-{"ID":8,"Name":"p","Email":"pp","Password":"ppp"}
+ID: 2, name: kdfjn, email: sdf, password: sdf<, ljifdj: fdkj
+{"ID":1,"Name":"s","Email":"ss","Password":"sss"}
+{"ID":2,"Name":"a","Email":"aa","Password":"$2a$10$5LTOR3kbKmgJbwRb3JkGbOCrwfYI0oxRI0LkZu2fvGKaFp78Rnbo6"}
