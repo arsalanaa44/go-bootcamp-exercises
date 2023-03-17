@@ -37,13 +37,13 @@
             register a user
             log in user
 
-userStory
-    user should be registered
-    can create category
-    add a new task
-    can see list of categories with progress status
-    can see today`s task
-    can see tasks by date
-    make done/undone a task
-    edit a task
-    edit a category
+    userStory
+        user should be registered
+        can create category
+        add a new task
+        can see list of categories with progress status
+        can see today`s task
+        can see tasks by date
+        make done/undone a task
+        edit a task
+        edit a category
