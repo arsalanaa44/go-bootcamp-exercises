@@ -1,17 +1,15 @@
 package main
 
-import (
-	"fmt"
-	"test_project/setup"
-	_ "test_project/setup"
-	_ "test_project/sp"
-)
+import "fmt"
 
-func init() {
-	fmt.Println("init main.go test_project")
-}
 func main() {
-	setup.Hello()
-	fmt.Println("main main.go test_project")
-	fmt.Println("play with init function")
+
+	i := 0
+start:
+	fmt.Println(i)
+	i++
+	if i <= 7 {
+		goto start
+	}
+	fmt.Println("finished!")
 }
