@@ -13,4 +13,5 @@ func init() {
 func main() {
 	setup.Hello()
 	fmt.Println("main main.go test_project")
+	fmt.Println("play with init function")
 }
