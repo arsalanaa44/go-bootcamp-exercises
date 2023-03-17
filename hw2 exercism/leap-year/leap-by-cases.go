@@ -57,7 +57,7 @@ var ttestCases = []struct {
 }
 var ansDict = make(map[int]bool)
 
-func isLeapYear(year int) bool {
+func IsLeapYear(year int) bool {
 	for _, v := range ttestCases {
 		if v.year == year {
 			return v.expected
