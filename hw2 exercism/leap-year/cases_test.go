@@ -13,7 +13,7 @@ var testCases = []struct {
 	{
 		description: "year divisible by 2, not divisible by 4 in common year",
 		year:        1970,
-		expected:    true, //for test
+		expected:    false,
 	},
 	{
 		description: "year divisible by 4, not divisible by 100 in leap year",

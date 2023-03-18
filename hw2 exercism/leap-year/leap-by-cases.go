@@ -66,6 +66,10 @@ func IsLeapYear(year int) bool {
 	return false
 }
 
+func IsLeapYear2(y int) bool {
+	return (y%4 == 0) && (y%100 != 0 || y%400 == 0)
+}
+
 func main() {
 
 	fmt.Println("hi")
