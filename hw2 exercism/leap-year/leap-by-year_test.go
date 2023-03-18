@@ -30,3 +30,5 @@ func TestIsLeapYear(t *testing.T) {
 		}
 	}
 }
+
+//go test .
