@@ -1,8 +1,12 @@
 simple creepy cli app just to warming up with go
+
 پروژه
 خب این هفته یه پروژه کوچیک هم داریم.
 یه برنامه cli بنویسید که از flag های زیر پشتیبانی کنه:
+
 command, region
+
+
 که region میتونه یکی از استان های کشور باشه مثلا tehran یا isfahan یا shiraz
 همچنین command میتونه یکی از این مقادیر رو داشته باشه
 مقدار list برای لیست کردن نمایندگی‌های شرکت در استان (region) مورد نظر
