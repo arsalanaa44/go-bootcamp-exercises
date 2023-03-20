@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect_and_interfaces/app"
 	"reflect_and_interfaces/intj"
@@ -19,10 +20,12 @@ func main() {
 		UserStorage: &mapm,
 	}
 
-	application.CreateUser(user.User{
+	var u = user.User{
 		ID:   1,
 		Name: "Aa",
-	})
+	}
+	application.CreateUser(u)
+
 	application.CreateUser(user.User{
 		ID:   3,
 		Name: "Cc",
@@ -58,5 +61,10 @@ func main() {
 
 	//io.ReadWriter()
 	//bufio.ReadWriter{}
+
+	fmt.Println(u)
+	if uM, jE := json.Marshal(u); jE == nil {
+		fmt.Println(string(uM))
+	}
 
 }
