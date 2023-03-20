@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+
 	myMap := make(map[int]user.User)
 	mapm := mapmemory.MStore{
 		Store: myMap,
@@ -66,5 +67,8 @@ func main() {
 	if uM, jE := json.Marshal(u); jE == nil {
 		fmt.Println(string(uM))
 	}
+
+	fmt.Println(user.CreateUserByID(2))
+	fmt.Println(user.CreateUserByID(0))
 
 }
