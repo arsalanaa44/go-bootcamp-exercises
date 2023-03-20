@@ -1,0 +1,1 @@
+[{"Message":"cannot open the file","MetaData":{"error":"open Im_not_exist.txt: no such file or directory"},"Operation":"os.open"},{"Message":"cannot create user","MetaData":{"error":"\nMessage:id is 0\nMetaData:map[]\nOperation:CreateUserByID"},"Operation":"user.CreateUserByID"}]

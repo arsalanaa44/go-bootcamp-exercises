@@ -3,9 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect_and_interfaces/app"
 	"reflect_and_interfaces/intj"
+	"reflect_and_interfaces/log"
 	"reflect_and_interfaces/mapmemory"
+	"reflect_and_interfaces/richerror"
 	"reflect_and_interfaces/user"
 	"sort"
 )
@@ -70,5 +73,31 @@ func main() {
 
 	fmt.Println(user.CreateUserByID(2))
 	fmt.Println(user.CreateUserByID(0))
+	logger := log.Log{}
 
+	filePath := "Im_not_exist.txt"
+	if _, er := os.Open(filePath); er != nil {
+		sEr := fmt.Sprint(er)
+		r := richerror.RichError{
+			Message: "cannot open the file",
+			MetaData: map[string]string{
+				"error": sEr,
+			},
+			Operation: "os.open",
+		}
+		logger.Append(r)
+	}
+
+	if _, er := user.CreateUserByID(0); er != nil {
+		sEr := fmt.Sprint(er)
+		r := richerror.RichError{
+			Message: "cannot create user",
+			MetaData: map[string]string{
+				"error": sEr,
+			},
+			Operation: "user.CreateUserByID",
+		}
+		logger.Append(r)
+	}
+	logger.Save()
 }
