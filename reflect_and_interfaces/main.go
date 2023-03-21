@@ -10,6 +10,7 @@ import (
 	"reflect_and_interfaces/log"
 	"reflect_and_interfaces/mapmemory"
 	"reflect_and_interfaces/richerror"
+	"reflect_and_interfaces/simpledata"
 	"reflect_and_interfaces/user"
 	"sort"
 	"time"
@@ -134,4 +135,23 @@ func main() {
 
 	logger.Save()
 
+}
+
+func prt(err error) {
+	fmt.Sprintln(err)
+	fmt.Sprintln(json.Marshal(simpledata.SimpleDataTwo{
+		ID:    00,
+		Name:  "name",
+		Email: "email",
+	}))
+
+}
+
+func prtDotErr(err error) {
+	fmt.Sprintln(err.Error())
+	fmt.Sprintln(json.Marshal(simpledata.SimpleData{
+		ID:    00,
+		Name:  "name",
+		Email: "email",
+	}))
 }
