@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"reflect_and_interfaces/app"
 	"reflect_and_interfaces/intj"
 	"reflect_and_interfaces/log"
@@ -11,6 +12,7 @@ import (
 	"reflect_and_interfaces/richerror"
 	"reflect_and_interfaces/user"
 	"sort"
+	"time"
 )
 
 func main() {
@@ -108,6 +110,26 @@ func main() {
 		logger.Append(er)
 		fmt.Println(3)
 		fmt.Println(er.Error())
+	}
+
+	richError := richerror.RichError{
+		Message:   "a simple richError",
+		MetaData:  nil,
+		Operation: "operand",
+		Time:      time.Now(),
+	}
+	value := reflect.ValueOf(richError)
+	switch value.Kind() {
+	case reflect.Struct:
+		{
+			for i := 0; i < value.NumField(); i++ {
+				fmt.Println(i,
+					value.Field(i),
+					value.Type(),
+					value.Type().Field(i).Name,
+					value.Type().Field(i).Type)
+			}
+		}
 	}
 
 	logger.Save()
