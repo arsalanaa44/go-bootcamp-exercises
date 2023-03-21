@@ -71,14 +71,14 @@ func main() {
 		fmt.Println(string(uM))
 	}
 
-	fmt.Println(user.CreateUserByID(2))
-	fmt.Println(user.CreateUserByID(0))
+	fmt.Println(user.CreateUserByID1(2))
+	fmt.Println(user.CreateUserByID1(0))
 	logger := log.Log{}
 
 	filePath := "Im_not_exist.txt"
 	if _, er := os.Open(filePath); er != nil {
 		sEr := fmt.Sprint(er)
-		r := richerror.RichError{
+		r := &richerror.RichError{
 			Message: "cannot open the file",
 			MetaData: map[string]string{
 				"error": sEr,
@@ -86,18 +86,30 @@ func main() {
 			Operation: "os.open",
 		}
 		logger.Append(r)
+		fmt.Println(1)
+		fmt.Println(r.Error())
 	}
 
-	if _, er := user.CreateUserByID(0); er != nil {
-		sEr := fmt.Sprint(er)
-		r := richerror.RichError{
-			Message: "cannot create user",
-			MetaData: map[string]string{
-				"error": sEr,
-			},
-			Operation: "user.CreateUserByID",
-		}
-		logger.Append(r)
+	if _, er := user.CreateUserByID1(0); er != nil {
+
+		logger.Append(er)
+		fmt.Println(2)
+		fmt.Println(er.Error())
 	}
+
+	if _, er := user.CreateUserByID2(0); er != nil {
+
+		logger.Append(er)
+		fmt.Println(3)
+		fmt.Println(er.Error())
+	}
+	if _, er := user.CreateUserByID3(0); er != nil {
+
+		logger.Append(er)
+		fmt.Println(3)
+		fmt.Println(er.Error())
+	}
+
 	logger.Save()
+
 }
