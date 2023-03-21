@@ -47,12 +47,17 @@ const (
 	JsonSerializationMode         = "json"
 )
 
+var userFileStore = fileStore{userStoragePath}
+
 func main() {
 
-	loadUserStorageFromFile()
-	for _, u := range userStorage {
-		fmt.Printf("%+v\n", u)
-	}
+	//loadUserStorageFromFile()
+
+	//var store userReadStore
+	//var userFileStore = fileStore{userStoragePath}
+	//store = userFileStore
+	//loadUserStorage(store)
+	loadUserStorage(userFileStore)
 
 	fmt.Println("hello to TODO app")
 
@@ -91,6 +96,14 @@ func runCommand(command string) {
 			return
 		}
 	}
+	if command == "register-user" {
+		//var store userWriteStore
+		//var userFileStore = fileStore{userStoragePath}
+		//store = userFileStore
+		registerUser(userFileStore)
+
+		return
+	}
 
 	switch command {
 
@@ -102,13 +115,13 @@ func runCommand(command string) {
 		{
 			listTask()
 		}
+	case "list-user":
+		{
+			listUser()
+		}
 	case "create-category":
 		{
 			createCategory()
-		}
-	case "register-user":
-		{
-			registerUser()
 		}
 	case "login":
 		{
@@ -198,7 +211,7 @@ func createCategory() {
 
 }
 
-func registerUser() {
+func registerUser(store userWriteStore) {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	var name, email, password string
@@ -227,8 +240,8 @@ func registerUser() {
 	}
 	userStorage = append(userStorage, user)
 
-	writeUserToFile(user)
-
+	// writeUserToFile(user)
+	store.Save(user)
 }
 
 func login() {
@@ -270,66 +283,17 @@ func listTask() {
 	}
 }
 
-func loadUserStorageFromFile() {
-	file, er := os.Open(userStoragePath)
-	if er != nil {
-		fmt.Println(userStoragePath, "doesn't exist")
-
-		return
-	}
-	defer file.Close()
-
-	data := make([]byte, 1024)
-	file.Read(data)
-
-	dataStr := string(data)
-	userSlice := strings.Split(dataStr, "\n")
-
-	for _, u := range userSlice {
-		if u == "" {
-
-			continue
-		}
-		var user User
-		if serializationMode == MandaravardiSerializationMode {
-			user, _ = deserializeFormMandaravardi(u)
-		} else {
-			var jErr error
-			jErr = json.Unmarshal([]byte(u), &user)
-			if jErr != nil {
-				fmt.Println("error in Unmarshalization !", jErr)
-
-				continue
-			}
-		}
-		userStorage = append(userStorage, user)
-
+func listUser() {
+	for _, u := range userStorage {
+		fmt.Printf("%+v\n", u)
 	}
 }
-func writeUserToFile(user User) {
 
-	file, err := os.OpenFile(userStoragePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		fmt.Println("open-file error :", err)
-
-		return
-	}
-	defer file.Close()
-
-	var data []byte
-	if serializationMode == MandaravardiSerializationMode {
-		data = []byte(fmt.Sprintf("\nID: %d, name: %s, email: %s, password: %s",
-			user.ID, user.Name, user.Email, user.Password))
-	} else if serializationMode == JsonSerializationMode {
-		var er error
-		data, er = json.Marshal(user)
-		if er != nil {
-			fmt.Println("can't marshal user to json", er)
-		}
-	}
-	data = append(data, '\n')
-	file.Write(data)
+func loadUserStorage(store userReadStore) {
+	users := store.Load()
+	userStorage = append(userStorage, users...)
 }
+
 func deserializeFormMandaravardi(userStr string) (User, error) {
 	var user User
 	userStr = strings.ReplaceAll(userStr, " ", "")
@@ -371,10 +335,96 @@ func deserializeFormMandaravardi(userStr string) (User, error) {
 	}
 	return user, nil
 }
+
 func hashThePassword(pass string) string {
 	hash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)
 	}
 	return string(hash)
+}
+
+type userWriteStore interface {
+	Save(u User)
+}
+
+type userReadStore interface {
+	Load() []User
+}
+
+type fileStore struct {
+	filePath string
+}
+
+func (fs fileStore) Save(user User) {
+	fs.writeUserToFile(user)
+}
+
+func (fs fileStore) writeUserToFile(user User) {
+
+	file, err := os.OpenFile(fs.filePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		fmt.Println("open-file error :", err)
+
+		return
+	}
+	defer file.Close()
+
+	var data []byte
+	if serializationMode == MandaravardiSerializationMode {
+		data = []byte(fmt.Sprintf("\nID: %d, name: %s, email: %s, password: %s",
+			user.ID, user.Name, user.Email, user.Password))
+	} else if serializationMode == JsonSerializationMode {
+		var er error
+		data, er = json.Marshal(user)
+		if er != nil {
+			fmt.Println("can't marshal user to json", er)
+		}
+	}
+	data = append(data, '\n')
+	file.Write(data)
+}
+
+func (fs fileStore) Load() []User {
+	return fs.loadUserStorageFromFile()
+}
+
+func (fs fileStore) loadUserStorageFromFile() []User {
+	users := []User{}
+	file, er := os.Open(fs.filePath)
+	if er != nil {
+		fmt.Println(fs.filePath, "doesn't exist")
+
+		return []User{}
+	}
+	defer file.Close()
+
+	data := make([]byte, 1024)
+	file.Read(data)
+
+	dataStr := string(data)
+	userSlice := strings.Split(dataStr, "\n")
+
+	for _, u := range userSlice {
+		if !(u[0] == '{' || u[0] == 'I') {
+
+			continue
+		}
+		var user User
+		if serializationMode == MandaravardiSerializationMode {
+			user, _ = deserializeFormMandaravardi(u)
+		} else {
+			var jErr error
+			jErr = json.Unmarshal([]byte(u), &user)
+			if jErr != nil {
+				fmt.Println("error in Unmarshalization !", jErr)
+
+				continue
+			}
+		}
+		users = append(users, user)
+
+	}
+
+	return users
 }
