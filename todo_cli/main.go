@@ -2,22 +2,19 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
+	"todo_cli/constant"
+	"todo_cli/contract"
+	"todo_cli/entity"
+
 	//go get
 	"golang.org/x/crypto/bcrypt"
 	"os"
 	"strconv"
-	"strings"
+	"todo_cli/filestore"
 )
 
-type User struct {
-	ID       int
-	Name     string
-	Email    string
-	Password string
-}
 type Task struct {
 	ID         int
 	Title      string
@@ -34,22 +31,36 @@ type Category struct {
 }
 
 var (
-	userStorage       []User
+	userStorage       []entity.User
 	taskStorage       []Task
 	categoryStorage   []Category
-	authenticatedUser *User
+	authenticatedUser *entity.User
 	serializationMode string
 )
 
 const (
-	userStoragePath               = "user.txt"
-	MandaravardiSerializationMode = "mandaravardi"
-	JsonSerializationMode         = "json"
+	userStoragePath = "user.txt"
 )
 
-var userFileStore = fileStore{userStoragePath}
-
 func main() {
+
+	fmt.Println("hello to TODO app")
+
+	command := flag.String("command", "no command", "command to run")
+	serializeMode := flag.String("serialization-mode", constant.JsonSerializationMode, "serialization mode to write data to file")
+	flag.Parse()
+
+	switch *serializeMode {
+	case constant.MandaravardiSerializationMode:
+		{
+			serializationMode = constant.MandaravardiSerializationMode
+		}
+	default:
+		{
+			serializationMode = constant.JsonSerializationMode
+		}
+	}
+	var userFileStore = filestore.New(userStoragePath, serializationMode)
 
 	//loadUserStorageFromFile()
 
@@ -57,26 +68,10 @@ func main() {
 	//var userFileStore = fileStore{userStoragePath}
 	//store = userFileStore
 	//loadUserStorage(store)
-	loadUserStorage(userFileStore)
+	userStorage = userFileStore.Load()
 
-	fmt.Println("hello to TODO app")
-
-	command := flag.String("command", "no command", "command to run")
-	serializeMode := flag.String("serialization-mode", JsonSerializationMode, "serialization mode to write data to file")
-	flag.Parse()
-
-	switch *serializeMode {
-	case MandaravardiSerializationMode:
-		{
-			serializationMode = MandaravardiSerializationMode
-		}
-	default:
-		{
-			serializationMode = JsonSerializationMode
-		}
-	}
 	for {
-		runCommand(*command)
+		runCommand(userFileStore, *command)
 
 		fmt.Println("please enter another command :")
 		scanner := bufio.NewScanner(os.Stdin)
@@ -87,7 +82,7 @@ func main() {
 
 }
 
-func runCommand(command string) {
+func runCommand(store contract.UserWriteStore, command string) {
 	if command != "register-user" && command != "login" && command != "exit" && authenticatedUser == nil {
 		fmt.Println("you should log in first !")
 		login()
@@ -100,7 +95,7 @@ func runCommand(command string) {
 		//var store userWriteStore
 		//var userFileStore = fileStore{userStoragePath}
 		//store = userFileStore
-		registerUser(userFileStore)
+		registerUser(store)
 
 		return
 	}
@@ -211,7 +206,7 @@ func createCategory() {
 
 }
 
-func registerUser(store userWriteStore) {
+func registerUser(store contract.UserWriteStore) {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	var name, email, password string
@@ -232,7 +227,7 @@ func registerUser(store userWriteStore) {
 	fmt.Println(name, "registered")
 
 	id := len(userStorage) + 1
-	user := User{
+	user := entity.User{
 		ID:       id,
 		Name:     name,
 		Email:    email,
@@ -289,142 +284,10 @@ func listUser() {
 	}
 }
 
-func loadUserStorage(store userReadStore) {
-	users := store.Load()
-	userStorage = append(userStorage, users...)
-}
-
-func deserializeFormMandaravardi(userStr string) (User, error) {
-	var user User
-	userStr = strings.ReplaceAll(userStr, " ", "")
-	userFields := strings.Split(userStr, ",")
-	for _, userField := range userFields {
-		field := strings.Split(userField, ":")
-		if len(field) < 2 {
-
-			continue
-		}
-		fieldName := field[0]
-		fieldValue := field[1]
-		switch fieldName {
-		case "ID":
-			{
-				var err error
-				user.ID, err = strconv.Atoi(fieldValue)
-				if err != nil {
-					fmt.Println(err)
-				}
-			}
-		case "name":
-			{
-				user.Name = fieldValue
-			}
-		case "password":
-			{
-				user.Password = fieldValue
-			}
-		case "email":
-			{
-				user.Email = fieldValue
-			}
-		default:
-			{
-				fmt.Println("hacker detected")
-			}
-		}
-	}
-	return user, nil
-}
-
 func hashThePassword(pass string) string {
 	hash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)
 	}
 	return string(hash)
-}
-
-type userWriteStore interface {
-	Save(u User)
-}
-
-type userReadStore interface {
-	Load() []User
-}
-
-type fileStore struct {
-	filePath string
-}
-
-func (fs fileStore) Save(user User) {
-	fs.writeUserToFile(user)
-}
-
-func (fs fileStore) writeUserToFile(user User) {
-
-	file, err := os.OpenFile(fs.filePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		fmt.Println("open-file error :", err)
-
-		return
-	}
-	defer file.Close()
-
-	var data []byte
-	if serializationMode == MandaravardiSerializationMode {
-		data = []byte(fmt.Sprintf("\nID: %d, name: %s, email: %s, password: %s",
-			user.ID, user.Name, user.Email, user.Password))
-	} else if serializationMode == JsonSerializationMode {
-		var er error
-		data, er = json.Marshal(user)
-		if er != nil {
-			fmt.Println("can't marshal user to json", er)
-		}
-	}
-	data = append(data, '\n')
-	file.Write(data)
-}
-
-func (fs fileStore) Load() []User {
-	return fs.loadUserStorageFromFile()
-}
-
-func (fs fileStore) loadUserStorageFromFile() []User {
-	users := []User{}
-	file, er := os.Open(fs.filePath)
-	if er != nil {
-		fmt.Println(fs.filePath, "doesn't exist")
-
-		return []User{}
-	}
-	defer file.Close()
-
-	data := make([]byte, 1024)
-	file.Read(data)
-
-	dataStr := string(data)
-	userSlice := strings.Split(dataStr, "\n")
-
-	for _, u := range userSlice {
-		if !(u[0] == '{' || u[0] == 'I') {
-
-			continue
-		}
-		var user User
-		if serializationMode == MandaravardiSerializationMode {
-			user, _ = deserializeFormMandaravardi(u)
-		} else {
-			var jErr error
-			jErr = json.Unmarshal([]byte(u), &user)
-			if jErr != nil {
-				fmt.Println("error in Unmarshalization !", jErr)
-
-				continue
-			}
-		}
-		users = append(users, user)
-
-	}
-
-	return users
 }
