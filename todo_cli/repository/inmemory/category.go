@@ -6,7 +6,13 @@ type Category struct {
 	categories []entity.Category
 }
 
-func (c Category) DoesThisUserHaveThisCategoryID(userID, categoryID int) bool {
+func NewCategoryStore() *Category {
+	return &Category{
+		[]entity.Category{},
+	}
+}
+
+func (c Category) UserIDAndCategoryIDValidation(userID, categoryID int) bool {
 
 	isFound := false
 	for _, c := range c.categories {
@@ -16,5 +22,15 @@ func (c Category) DoesThisUserHaveThisCategoryID(userID, categoryID int) bool {
 			break
 		}
 	}
+
 	return isFound
+}
+
+func (c Category) CreateNewCategory(category entity.Category) (entity.Category, error) {
+
+	category.ID = len(c.categories) + 1
+	c.categories = append(c.categories, category)
+
+	return category, nil
+
 }
