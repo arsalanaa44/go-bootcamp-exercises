@@ -7,33 +7,19 @@ import (
 	"todo_cli/constant"
 	"todo_cli/contract"
 	"todo_cli/entity"
+	"todo_cli/repository/filestore"
+	"todo_cli/repository/inmemory"
+	"todo_cli/service/task"
 
 	//go get
 	"golang.org/x/crypto/bcrypt"
 	"os"
 	"strconv"
-	"todo_cli/filestore"
 )
-
-type Task struct {
-	ID         int
-	Title      string
-	DueDate    string
-	CategoryID int
-	IsDone     bool
-	UserID     int
-}
-type Category struct {
-	ID     int
-	Title  string
-	Color  string
-	userID int
-}
 
 var (
 	userStorage       []entity.User
-	taskStorage       []Task
-	categoryStorage   []Category
+	categoryStorage   []entity.Category
 	authenticatedUser *entity.User
 	serializationMode string
 )
@@ -43,6 +29,8 @@ const (
 )
 
 func main() {
+	taskMemoryRepo := inmemory.NewTaskStore()
+	taskService := task.NewService(taskMemoryRepo)
 
 	fmt.Println("hello to TODO app")
 
@@ -71,7 +59,7 @@ func main() {
 	userStorage = userFileStore.Load()
 
 	for {
-		runCommand(userFileStore, *command)
+		runCommand(userFileStore, *command, &taskService)
 
 		fmt.Println("please enter another command :")
 		scanner := bufio.NewScanner(os.Stdin)
@@ -82,7 +70,7 @@ func main() {
 
 }
 
-func runCommand(store contract.UserWriteStore, command string) {
+func runCommand(store contract.UserWriteStore, command string, taskService *task.Service) {
 	if command != "register-user" && command != "login" && command != "exit" && authenticatedUser == nil {
 		fmt.Println("you should log in first !")
 		login()
@@ -104,11 +92,11 @@ func runCommand(store contract.UserWriteStore, command string) {
 
 	case "create-task":
 		{
-			createTask()
+			createTask(taskService)
 		}
 	case "list-task":
 		{
-			listTask()
+			listTask(taskService)
 		}
 	case "list-user":
 		{
@@ -133,7 +121,7 @@ func runCommand(store contract.UserWriteStore, command string) {
 	}
 }
 
-func createTask() {
+func createTask(taskService *task.Service) {
 	scanner := bufio.NewScanner(os.Stdin)
 	var title, dueDate, category string
 
@@ -155,30 +143,19 @@ func createTask() {
 		return
 	}
 
-	notFound := true
-	for _, c := range categoryStorage {
-		if c.ID == categoryID && c.userID == authenticatedUser.ID {
-			notFound = false
+	if response, cErr := taskService.Create(task.CreateRequest{
+		Title:               title,
+		DueDate:             dueDate,
+		CategoryID:          categoryID,
+		AuthenticatedUserID: authenticatedUser.ID,
+	}); cErr != nil {
+		fmt.Println("error", cErr)
 
-			break
-		}
-	}
-	if notFound {
-		fmt.Println("category-ID is not valid")
 		return
-	}
-	task := Task{
-		ID:         len(taskStorage) + 1,
-		Title:      title,
-		DueDate:    dueDate,
-		CategoryID: categoryID,
-		IsDone:     false,
-		UserID:     authenticatedUser.ID,
-	}
+	} else {
+		fmt.Println("task created :", response.Task)
 
-	taskStorage = append(taskStorage, task)
-
-	fmt.Println("task", title, dueDate, category)
+	}
 
 }
 
@@ -196,11 +173,11 @@ func createCategory() {
 
 	fmt.Println("category: ", title, color)
 
-	category := Category{
+	category := entity.Category{
 		ID:     len(categoryStorage) + 1,
 		Title:  title,
 		Color:  color,
-		userID: authenticatedUser.ID,
+		UserID: authenticatedUser.ID,
 	}
 	categoryStorage = append(categoryStorage, category)
 
@@ -269,13 +246,20 @@ func login() {
 
 }
 
-func listTask() {
+func listTask(taskService *task.Service) {
 
-	for _, task := range taskStorage {
-		if task.UserID == authenticatedUser.ID {
-			fmt.Printf("%+v\n", task)
+	lReq := task.ListRequest{authenticatedUser.ID}
+	if listResponse, lErr := taskService.List(lReq); lErr != nil {
+		fmt.Println("error listTask", lErr)
+
+		return
+	} else {
+		for i, v := range listResponse.Tasks {
+			fmt.Println(i+1, ":", v)
 		}
 	}
+
+	return
 }
 
 func listUser() {
