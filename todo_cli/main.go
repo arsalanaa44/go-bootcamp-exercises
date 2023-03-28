@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"todo_cli/constant"
 	"todo_cli/contract"
+	"todo_cli/encryption"
 	"todo_cli/entity"
 	"todo_cli/repository/filestore"
 	"todo_cli/repository/inmemory"
+	"todo_cli/service/category"
 	"todo_cli/service/task"
 
 	//go get
@@ -29,8 +31,11 @@ const (
 )
 
 func main() {
+
 	taskMemoryRepo := inmemory.NewTaskStore()
-	taskService := task.NewService(taskMemoryRepo)
+	categoryMemoryRepo := inmemory.NewCategoryStore()
+	categoryService := category.NewService(categoryMemoryRepo)
+	taskService := task.NewService(taskMemoryRepo, categoryService)
 
 	fmt.Println("hello to TODO app")
 
@@ -200,7 +205,7 @@ func registerUser(store contract.UserWriteStore) {
 	scanner.Scan()
 	password = scanner.Text()
 
-	password = hashThePassword(password)
+	password = encryption.HashThePassword(password)
 	fmt.Println(name, "registered")
 
 	id := len(userStorage) + 1
@@ -268,10 +273,4 @@ func listUser() {
 	}
 }
 
-func hashThePassword(pass string) string {
-	hash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
-	if err != nil {
-		panic(err)
-	}
-	return string(hash)
-}
+
