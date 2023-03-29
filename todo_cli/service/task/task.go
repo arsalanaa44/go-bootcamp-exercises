@@ -6,7 +6,7 @@ import (
 )
 
 type CategoryService interface {
-	DoesThisUserHaveThisCategoryID(userID, categoryID int) bool
+	//DoesThisUserHaveThisCategoryID(userID, categoryID int) bool
 }
 type ServiceRepository interface {
 	CreateNewTask(t entity.Task) (entity.Task, error)
@@ -34,9 +34,9 @@ type CreateResponse struct {
 
 func (t *Service) Create(req CreateRequest) (CreateResponse, error) {
 
-	if !t.categoryService.DoesThisUserHaveThisCategoryID(req.AuthenticatedUserID, req.CategoryID) {
-		return CreateResponse{}, fmt.Errorf("categoryservice-ID %d is not valid", req.CategoryID)
-	}
+	//if !t.categoryService.DoesThisUserHaveThisCategoryID(req.AuthenticatedUserID, req.CategoryID) {
+	//	return CreateResponse{}, fmt.Errorf("categoryservice-ID %d is not valid", req.CategoryID)
+	//}
 
 	createdTask, cErr := t.taskRepository.CreateNewTask(entity.Task{
 		Title:      req.Title,
