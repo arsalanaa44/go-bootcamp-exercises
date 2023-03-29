@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"todo_cli/client/clientservices/taskclient"
+	"todo_cli/client/clientservices/userclient"
 	"todo_cli/constant"
 	"todo_cli/encryption"
 	"todo_cli/entity"
@@ -208,26 +209,12 @@ func registerUser(userService *user.Service) {
 
 func login(userService *user.Service) {
 
-	fmt.Println("login process :")
-	scanner := bufio.NewScanner(os.Stdin)
-	var email, password string
-
-	fmt.Println("please enter the user email")
-	scanner.Scan()
-	email = scanner.Text()
-
-	fmt.Println("please enter the user password")
-	scanner.Scan()
-	password = scanner.Text()
-
-	if loginResponse, lErr := userService.Login(user.LoginRequest{
-		Email:    email,
-		Password: password,
-	}); lErr != nil {
+	loginRequest := userclient.NewClientService().Login()
+	if loginResponse, lErr := userService.Login(loginRequest); lErr != nil {
 		fmt.Println("login error:", lErr)
 	} else {
 		authenticatedUser = loginResponse.User
-		fmt.Println(authenticatedUser, "logged in")
+		fmt.Println(authenticatedUser, "logged in successfully")
 	}
 
 }
