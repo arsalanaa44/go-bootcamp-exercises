@@ -62,13 +62,7 @@ type ListResponse struct {
 func (s *Service) List() ListResponse {
 	return ListResponse{
 		Users: s.TempRepo.ListUsers()}
-	return ListResponse{
-		Users: []entity.User{entity.User{
-			ID:       5,
-			Name:     "",
-			Email:    "",
-			Password: "",
-		}}}
+
 }
 
 type LoginRequest struct {

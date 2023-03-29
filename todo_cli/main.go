@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"todo_cli/client/clientservices/taskclient"
+	"todo_cli/client/clientservices/userclient"
 	"todo_cli/constant"
 	"todo_cli/encryption"
 	"todo_cli/entity"
@@ -124,16 +126,16 @@ func runCommand(userService *user.Service, command string, taskService *task.Ser
 
 func createTask(taskService *task.Service) {
 
-	//createRequest, cErr := taskclient.NewClientService().CreateTask()
-	//if cErr != nil {
-	//	fmt.Println("can't create task", cErr)
-	//
-	//	return
-	//}
+	createRequest, cErr := taskclient.NewClientService().CreateTask()
+	if cErr != nil {
+		fmt.Println("can't create task", cErr)
+
+		return
+	}
 	if response, cErr := taskService.Create(task.CreateRequest{
-		Title:               "createRequest.Title",
-		DueDate:             "createRequest.DueDate",
-		CategoryID:          1, //createRequest.CategoryID,
+		Title:               createRequest.Title,
+		DueDate:             createRequest.DueDate,
+		CategoryID:          createRequest.CategoryID,
 		AuthenticatedUserID: authenticatedUser.ID,
 	}); cErr != nil {
 		fmt.Println("error", cErr)
@@ -147,20 +149,20 @@ func createTask(taskService *task.Service) {
 }
 
 func createCategory(categoryService *categoryservice.Service) {
-	//scanner := bufio.NewScanner(os.Stdin)
-	//var title, color string
-	//
-	//fmt.Println("please enter the categoryservice title")
-	//scanner.Scan()
-	//title = scanner.Text()
-	//
-	//fmt.Println("please enter the categoryservice color")
-	//scanner.Scan()
-	//color = scanner.Text()
+	scanner := bufio.NewScanner(os.Stdin)
+	var title, color string
+
+	fmt.Println("please enter the categoryservice title")
+	scanner.Scan()
+	title = scanner.Text()
+
+	fmt.Println("please enter the categoryservice color")
+	scanner.Scan()
+	color = scanner.Text()
 
 	createResponse, cErr := categoryService.Create(categoryservice.CreateRequest{
-		Title:               "title",
-		Color:               "color",
+		Title:               title,
+		Color:               color,
 		AuthenticatedUserID: authenticatedUser.ID,
 	})
 	if cErr != nil {
@@ -205,12 +207,12 @@ func registerUser(userService *user.Service) {
 }
 
 func login(userService *user.Service) {
-	//loginRequest := userclient.NewClientService().Login()
+	loginRequest := userclient.NewClientService().Login()
 	//autologin
-	loginRequest := user.LoginRequest{
-		Email:    "pp",
-		Password: "ppp",
-	}
+	//loginRequest := user.LoginRequest{
+	//	Email:    "pp",
+	//	Password: "ppp",
+	//}
 	if loginResponse, lErr := userService.Login(loginRequest); lErr != nil {
 	} else {
 		authenticatedUser = loginResponse.User
