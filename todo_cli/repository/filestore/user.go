@@ -20,17 +20,16 @@ func New(filePath, serializationMode string) FileStore {
 	return FileStore{filePath, serializationMode}
 }
 
-func (fs FileStore) Save(user entity.User) {
-	fs.writeUserToFile(user)
+func (fs FileStore) Save(user entity.User) error {
+	return fs.writeUserToFile(user)
 }
 
-func (fs FileStore) writeUserToFile(user entity.User) {
+func (fs FileStore) writeUserToFile(user entity.User) error {
 
 	file, err := os.OpenFile(fs.filePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
-		fmt.Println("open-file error :", err)
 
-		return
+		return fmt.Errorf("open-file error :", err)
 	}
 	defer file.Close()
 
@@ -42,11 +41,14 @@ func (fs FileStore) writeUserToFile(user entity.User) {
 		var er error
 		data, er = json.Marshal(user)
 		if er != nil {
-			fmt.Println("can't marshal user to json", er)
+
+			return fmt.Errorf("can't marshal user to json", er)
 		}
 	}
 	data = append(data, '\n')
-	file.Write(data)
+	_, wErr := file.Write(data)
+
+	return wErr
 }
 
 func (fs FileStore) Load() []entity.User {

@@ -4,24 +4,20 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"todo_cli/client/clientservices/taskclient"
 	"todo_cli/constant"
-	"todo_cli/contract"
 	"todo_cli/encryption"
 	"todo_cli/entity"
 	"todo_cli/repository/filestore"
 	"todo_cli/repository/inmemory"
-	"todo_cli/service/category"
+	"todo_cli/service/categoryservice"
 	"todo_cli/service/task"
+	"todo_cli/service/user"
 
-	//go get
-	"golang.org/x/crypto/bcrypt"
 	"os"
-	"strconv"
 )
 
 var (
-	userStorage       []entity.User
-	categoryStorage   []entity.Category
 	authenticatedUser *entity.User
 	serializationMode string
 )
@@ -34,7 +30,7 @@ func main() {
 
 	taskMemoryRepo := inmemory.NewTaskStore()
 	categoryMemoryRepo := inmemory.NewCategoryStore()
-	categoryService := category.NewService(categoryMemoryRepo)
+	categoryService := categoryservice.NewService(categoryMemoryRepo)
 	taskService := task.NewService(taskMemoryRepo, categoryService)
 
 	fmt.Println("hello to TODO app")
@@ -54,6 +50,8 @@ func main() {
 		}
 	}
 	var userFileStore = filestore.New(userStoragePath, serializationMode)
+	userMemoryStore := inmemory.NewUserStore(userFileStore.Load())
+	userService := user.NewUserService(userMemoryStore, userFileStore)
 
 	//loadUserStorageFromFile()
 
@@ -61,10 +59,9 @@ func main() {
 	//var userFileStore = fileStore{userStoragePath}
 	//store = userFileStore
 	//loadUserStorage(store)
-	userStorage = userFileStore.Load()
 
 	for {
-		runCommand(userFileStore, *command, &taskService)
+		runCommand(&userService, *command, &taskService, &categoryService)
 
 		fmt.Println("please enter another command :")
 		scanner := bufio.NewScanner(os.Stdin)
@@ -75,10 +72,10 @@ func main() {
 
 }
 
-func runCommand(store contract.UserWriteStore, command string, taskService *task.Service) {
+func runCommand(userService *user.Service, command string, taskService *task.Service, categoryService *categoryservice.Service) {
 	if command != "register-user" && command != "login" && command != "exit" && authenticatedUser == nil {
 		fmt.Println("you should log in first !")
-		login()
+		login(userService)
 		if authenticatedUser == nil {
 
 			return
@@ -88,32 +85,32 @@ func runCommand(store contract.UserWriteStore, command string, taskService *task
 		//var store userWriteStore
 		//var userFileStore = fileStore{userStoragePath}
 		//store = userFileStore
-		registerUser(store)
+		registerUser(userService)
 
 		return
 	}
 
 	switch command {
 
-	case "create-task":
+	case "create-taskclient":
 		{
 			createTask(taskService)
 		}
-	case "list-task":
+	case "list-taskclient":
 		{
 			listTask(taskService)
 		}
 	case "list-user":
 		{
-			listUser()
+			listUser(userService)
 		}
-	case "create-category":
+	case "create-categoryservice":
 		{
-			createCategory()
+			createCategory(categoryService)
 		}
 	case "login":
 		{
-			login()
+			login(userService)
 		}
 	case "exit":
 		{
@@ -127,68 +124,58 @@ func runCommand(store contract.UserWriteStore, command string, taskService *task
 }
 
 func createTask(taskService *task.Service) {
-	scanner := bufio.NewScanner(os.Stdin)
-	var title, dueDate, category string
 
-	fmt.Println("please enter the task title")
-	scanner.Scan()
-	title = scanner.Text()
-
-	fmt.Println("please enter the task due date")
-	scanner.Scan()
-	dueDate = scanner.Text()
-
-	fmt.Println("please enter the task category-ID")
-	scanner.Scan()
-	category = scanner.Text()
-	categoryID, e := strconv.Atoi(category)
-	if e != nil {
-		fmt.Println("category-ID is not valid integer", e)
+	createRequest, cErr := taskclient.NewClientService().CreateTask()
+	if cErr != nil {
+		fmt.Println("can't create task", cErr)
 
 		return
 	}
-
 	if response, cErr := taskService.Create(task.CreateRequest{
-		Title:               title,
-		DueDate:             dueDate,
-		CategoryID:          categoryID,
+		Title:               createRequest.Title,
+		DueDate:             createRequest.DueDate,
+		CategoryID:          createRequest.CategoryID,
 		AuthenticatedUserID: authenticatedUser.ID,
 	}); cErr != nil {
 		fmt.Println("error", cErr)
 
 		return
 	} else {
-		fmt.Println("task created :", response.Task)
+		fmt.Println("taskclient created :", response.Task)
 
 	}
 
 }
 
-func createCategory() {
+func createCategory(categoryService *categoryservice.Service) {
 	scanner := bufio.NewScanner(os.Stdin)
 	var title, color string
 
-	fmt.Println("please enter the category title")
+	fmt.Println("please enter the categoryservice title")
 	scanner.Scan()
 	title = scanner.Text()
 
-	fmt.Println("please enter the category color")
+	fmt.Println("please enter the categoryservice color")
 	scanner.Scan()
 	color = scanner.Text()
 
-	fmt.Println("category: ", title, color)
+	createResponse, cErr := categoryService.Create(categoryservice.CreateRequest{
+		Title:               title,
+		Color:               color,
+		AuthenticatedUserID: authenticatedUser.ID,
+	})
+	if cErr != nil {
+		fmt.Println("categoriy creation error:", cErr)
 
-	category := entity.Category{
-		ID:     len(categoryStorage) + 1,
-		Title:  title,
-		Color:  color,
-		UserID: authenticatedUser.ID,
+		return
+	} else {
+
+		fmt.Println("category created:", createResponse.Category.Title)
 	}
-	categoryStorage = append(categoryStorage, category)
 
 }
 
-func registerUser(store contract.UserWriteStore) {
+func registerUser(userService *user.Service) {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	var name, email, password string
@@ -206,22 +193,20 @@ func registerUser(store contract.UserWriteStore) {
 	password = scanner.Text()
 
 	password = encryption.HashThePassword(password)
-	fmt.Println(name, "registered")
 
-	id := len(userStorage) + 1
-	user := entity.User{
-		ID:       id,
-		Name:     name,
-		Email:    email,
-		Password: password,
+	registerRes, rErr := userService.Register(user.RegisterRequest{
+		name,
+		email,
+		password,
+	})
+	if rErr != nil {
+		fmt.Println("error in registering user", rErr)
 	}
-	userStorage = append(userStorage, user)
+	fmt.Println(registerRes.User.Name, "registered")
 
-	// writeUserToFile(user)
-	store.Save(user)
 }
 
-func login() {
+func login(userService *user.Service) {
 
 	fmt.Println("login process :")
 	scanner := bufio.NewScanner(os.Stdin)
@@ -234,19 +219,15 @@ func login() {
 	fmt.Println("please enter the user password")
 	scanner.Scan()
 	password = scanner.Text()
-	for _, user := range userStorage {
-		if user.Email == email {
-			er := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-			if er == nil {
-				authenticatedUser = &user
-				fmt.Println("user login :", user.Name)
 
-				break
-			}
-		}
-	}
-	if authenticatedUser == nil {
-		fmt.Println("email or password is incorrect")
+	if loginResponse, lErr := userService.Login(user.LoginRequest{
+		Email:    email,
+		Password: password,
+	}); lErr != nil {
+		fmt.Println("login error:", lErr)
+	} else {
+		authenticatedUser = loginResponse.User
+		fmt.Println(authenticatedUser, "logged in")
 	}
 
 }
@@ -267,10 +248,8 @@ func listTask(taskService *task.Service) {
 	return
 }
 
-func listUser() {
-	for _, u := range userStorage {
+func listUser(userService *user.Service) {
+	for _, u := range userService.List().Users {
 		fmt.Printf("%+v\n", u)
 	}
 }
-
-

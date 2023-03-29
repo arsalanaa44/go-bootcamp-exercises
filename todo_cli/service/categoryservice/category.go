@@ -1,4 +1,4 @@
-package category
+package categoryservice
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ type CreateRequest struct {
 }
 
 type CreateResponse struct {
-	category entity.Category
+	Category entity.Category
 }
 
 func (s *Service) Create(request CreateRequest) (CreateResponse, error) {
@@ -37,7 +37,7 @@ func (s *Service) Create(request CreateRequest) (CreateResponse, error) {
 	})
 	if cErr != nil {
 
-		return CreateResponse{}, fmt.Errorf("can't create new category :%v", cErr)
+		return CreateResponse{}, fmt.Errorf("can't create new categoryservice :%v", cErr)
 	}
 
 	return CreateResponse{category}, nil

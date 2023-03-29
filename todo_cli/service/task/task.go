@@ -35,7 +35,7 @@ type CreateResponse struct {
 func (t *Service) Create(req CreateRequest) (CreateResponse, error) {
 
 	if !t.categoryService.DoesThisUserHaveThisCategoryID(req.AuthenticatedUserID, req.CategoryID) {
-		return CreateResponse{}, fmt.Errorf("category-ID %d is not valid", req.CategoryID)
+		return CreateResponse{}, fmt.Errorf("categoryservice-ID %d is not valid", req.CategoryID)
 	}
 
 	createdTask, cErr := t.taskRepository.CreateNewTask(entity.Task{
@@ -46,7 +46,7 @@ func (t *Service) Create(req CreateRequest) (CreateResponse, error) {
 		UserID:     req.AuthenticatedUserID,
 	})
 	if cErr != nil {
-		return CreateResponse{}, fmt.Errorf("can't create new task", cErr)
+		return CreateResponse{}, fmt.Errorf("can't create new taskclient", cErr)
 	}
 
 	return CreateResponse{createdTask}, nil
