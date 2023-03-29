@@ -16,6 +16,7 @@ func NewClientService() *ClientService {
 }
 
 func (cs *ClientService) CreateTask() (task.CreateRequest, error) {
+
 	scanner := bufio.NewScanner(os.Stdin)
 	var title, dueDate, category string
 

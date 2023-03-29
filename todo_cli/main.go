@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"todo_cli/client/clientservices/taskclient"
-	"todo_cli/client/clientservices/userclient"
 	"todo_cli/constant"
 	"todo_cli/encryption"
 	"todo_cli/entity"
@@ -93,11 +91,11 @@ func runCommand(userService *user.Service, command string, taskService *task.Ser
 
 	switch command {
 
-	case "create-taskclient":
+	case "create-task":
 		{
 			createTask(taskService)
 		}
-	case "list-taskclient":
+	case "list-task":
 		{
 			listTask(taskService)
 		}
@@ -105,7 +103,7 @@ func runCommand(userService *user.Service, command string, taskService *task.Ser
 		{
 			listUser(userService)
 		}
-	case "create-categoryservice":
+	case "create-category":
 		{
 			createCategory(categoryService)
 		}
@@ -126,16 +124,16 @@ func runCommand(userService *user.Service, command string, taskService *task.Ser
 
 func createTask(taskService *task.Service) {
 
-	createRequest, cErr := taskclient.NewClientService().CreateTask()
-	if cErr != nil {
-		fmt.Println("can't create task", cErr)
-
-		return
-	}
+	//createRequest, cErr := taskclient.NewClientService().CreateTask()
+	//if cErr != nil {
+	//	fmt.Println("can't create task", cErr)
+	//
+	//	return
+	//}
 	if response, cErr := taskService.Create(task.CreateRequest{
-		Title:               createRequest.Title,
-		DueDate:             createRequest.DueDate,
-		CategoryID:          createRequest.CategoryID,
+		Title:               "createRequest.Title",
+		DueDate:             "createRequest.DueDate",
+		CategoryID:          1, //createRequest.CategoryID,
 		AuthenticatedUserID: authenticatedUser.ID,
 	}); cErr != nil {
 		fmt.Println("error", cErr)
@@ -149,20 +147,20 @@ func createTask(taskService *task.Service) {
 }
 
 func createCategory(categoryService *categoryservice.Service) {
-	scanner := bufio.NewScanner(os.Stdin)
-	var title, color string
-
-	fmt.Println("please enter the categoryservice title")
-	scanner.Scan()
-	title = scanner.Text()
-
-	fmt.Println("please enter the categoryservice color")
-	scanner.Scan()
-	color = scanner.Text()
+	//scanner := bufio.NewScanner(os.Stdin)
+	//var title, color string
+	//
+	//fmt.Println("please enter the categoryservice title")
+	//scanner.Scan()
+	//title = scanner.Text()
+	//
+	//fmt.Println("please enter the categoryservice color")
+	//scanner.Scan()
+	//color = scanner.Text()
 
 	createResponse, cErr := categoryService.Create(categoryservice.CreateRequest{
-		Title:               title,
-		Color:               color,
+		Title:               "title",
+		Color:               "color",
 		AuthenticatedUserID: authenticatedUser.ID,
 	})
 	if cErr != nil {
@@ -170,7 +168,6 @@ func createCategory(categoryService *categoryservice.Service) {
 
 		return
 	} else {
-
 		fmt.Println("category created:", createResponse.Category.Title)
 	}
 
@@ -208,13 +205,16 @@ func registerUser(userService *user.Service) {
 }
 
 func login(userService *user.Service) {
-
-	loginRequest := userclient.NewClientService().Login()
+	//loginRequest := userclient.NewClientService().Login()
+	//autologin
+	loginRequest := user.LoginRequest{
+		Email:    "pp",
+		Password: "ppp",
+	}
 	if loginResponse, lErr := userService.Login(loginRequest); lErr != nil {
-		fmt.Println("login error:", lErr)
 	} else {
 		authenticatedUser = loginResponse.User
-		fmt.Println(authenticatedUser, "logged in successfully")
+		fmt.Println(authenticatedUser.Name, "logged in successfully")
 	}
 
 }
@@ -227,6 +227,7 @@ func listTask(taskService *task.Service) {
 
 		return
 	} else {
+		println("what the")
 		for i, v := range listResponse.Tasks {
 			fmt.Println(i+1, ":", v)
 		}

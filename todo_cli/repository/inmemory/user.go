@@ -27,7 +27,7 @@ func (u *User) DeleteLast() {
 
 func (u *User) ListUsers() []entity.User {
 	var ls = make([]entity.User, len(u.users))
-	copy(u.users, ls)
+	copy(ls, u.users)
 
 	return ls
 }

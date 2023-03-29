@@ -18,7 +18,7 @@ type ServicePermRepository interface {
 }
 
 type Service struct {
-	tempRepo ServiceTempRepository
+	TempRepo ServiceTempRepository
 	permRepo ServicePermRepository
 }
 
@@ -37,14 +37,14 @@ type RegisterResponse struct {
 
 func (s *Service) Register(req RegisterRequest) (RegisterResponse, error) {
 
-	user := s.tempRepo.Save(entity.User{
+	user := s.TempRepo.Save(entity.User{
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: req.Password,
 	})
 
 	if sErr := s.permRepo.Save(user); sErr != nil {
-		s.tempRepo.DeleteLast()
+		s.TempRepo.DeleteLast()
 
 		return RegisterResponse{}, fmt.Errorf("can't save it permanantly ,%v", sErr)
 	}
@@ -61,7 +61,14 @@ type ListResponse struct {
 
 func (s *Service) List() ListResponse {
 	return ListResponse{
-		s.tempRepo.ListUsers()}
+		Users: s.TempRepo.ListUsers()}
+	return ListResponse{
+		Users: []entity.User{entity.User{
+			ID:       5,
+			Name:     "",
+			Email:    "",
+			Password: "",
+		}}}
 }
 
 type LoginRequest struct {
