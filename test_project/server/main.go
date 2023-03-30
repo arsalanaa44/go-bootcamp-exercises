@@ -4,14 +4,23 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"strings"
 )
 
 func main() {
+
+	var response = `HTTP/1.1 200 OK
+Date: Mon, 27 Jul 2009 12:28:53 GMT
+Content-Length: 12
+Content-Type: text/plane
+Connection: Closed
+
+Hey there its Me`
+
 	const (
 		network = "tcp"
-		address = "127.0.0.1:2022"
-		// address = "127.0.0.1:8000"
-
+		address = ":8080"
 	)
 
 	// create listener
@@ -41,29 +50,48 @@ func main() {
 
 		// process request
 		var data = make([]byte, 1024)
-		numberOfReadBytes, rErr := connection.Read(data)
-		if rErr != nil {
+		if _, rErr := connection.Read(data); rErr != nil {
 			log.Println("rError", rErr)
 
 			continue
 		}
-		fmt.Println(numberOfReadBytes, string(data))
+		method, path := parseHTTPRequest(string(data))
+		fmt.Println(method, path)
+		if method == "GET" {
+			if path != "/" {
+				var file *os.File
+				if f, oErr := os.OpenFile(strings.Replace(path, "/", "", 1)+".html", os.O_RDWR, 0777); oErr != nil {
+					fmt.Println("error open file :", oErr)
 
-		if string(data[:5]) == "break" {
+					continue
+				} else {
+					file = f
+				}
+				var data = make([]byte, 1024)
+				n, _ := file.Read(data)
+				response = fmt.Sprintf(`HTTP/1.1 200 OK
+				Content-Length: %v
+				Content-Type: text/html
 
-			break
+				%s`, n, data)
+
+			}
 		}
-
-		data = []byte(`your message recieved "_"`)
-		numberOfReadBytes, rErr = connection.Write(data)
-		if rErr != nil {
-			log.Println("rError", rErr)
+		if _, wErr := connection.Write([]byte(response)); wErr != nil {
+			log.Println("wError", wErr)
 
 			continue
 		}
-		fmt.Println(numberOfReadBytes, string(data))
 
 		connection.Close()
 	}
 
+}
+
+func parseHTTPRequest(data string) (string, string) {
+	dataLines := strings.Split(data, "\n")
+	line0 := strings.Split(dataLines[0], " ")
+	method, path := string(line0[0]), string(line0[1])
+
+	return method, path
 }
