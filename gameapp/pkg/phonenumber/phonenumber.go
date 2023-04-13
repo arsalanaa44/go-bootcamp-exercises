@@ -4,6 +4,7 @@ import "strconv"
 
 func IsValid(phoneNumber string) bool {
 	// TODO - we can use regular expression to support +98
+
 	if len(phoneNumber) != 11 {
 
 		return false
