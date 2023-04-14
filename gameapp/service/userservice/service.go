@@ -20,8 +20,8 @@ func New(repository Repository) Service {
 }
 
 type RegisterRequest struct {
-	Name        string
-	PhoneNumber string
+	Name        string `json:"name",xml:"Name"` // standard for each format
+	PhoneNumber string `json:"phone_number"`
 }
 type RegisterResponse struct {
 	User entity.User
