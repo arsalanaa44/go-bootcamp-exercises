@@ -3,4 +3,4 @@ CREATE TABLE users (
     name        varchar(255) not null default "h",
     phone_number varchar(255) not null unique ,
     created_at timestamp default current_timestamp
-)
+);
