@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gameapp/entity"
 	"gameapp/pkg/phonenumber"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Repository interface {
@@ -22,6 +23,7 @@ func New(repository Repository) Service {
 type RegisterRequest struct {
 	Name        string `json:"name",xml:"Name"` // standard for each format
 	PhoneNumber string `json:"phone_number"`
+	Password    string `json:"password"`
 }
 type RegisterResponse struct {
 	User entity.User
@@ -55,11 +57,19 @@ func (s Service) Register(request RegisterRequest) (RegisterResponse, error) {
 		return RegisterResponse{}, fmt.Errorf("name length should be greater than 3")
 	}
 
+	// TODO - check the password with regex pattern
+	// validate password
+	if len(request.Password) < 8 {
+
+		return RegisterResponse{}, fmt.Errorf("password length should be greater than 8")
+	}
+
 	// create new user in storage
 	var user entity.User
 	if u, rErr := s.Repository.Register(entity.User{
 		Name:        request.Name,
 		PhoneNumber: request.PhoneNumber,
+		Password:    hashPassword(request.Password),
 	}); rErr != nil {
 
 		return RegisterResponse{}, fmt.Errorf("unexpected error: %w", rErr)
@@ -69,4 +79,14 @@ func (s Service) Register(request RegisterRequest) (RegisterResponse, error) {
 
 	// return created user
 	return RegisterResponse{user}, nil
+}
+
+func hashPassword(password string) string {
+	bytes, _ := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes)
+}
+
+func checkPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
