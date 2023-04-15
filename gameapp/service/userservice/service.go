@@ -10,6 +10,7 @@ import (
 type Repository interface {
 	IsPhoneNumberUnique(phoneNumber string) (bool, error)
 	Register(user entity.User) (entity.User, error)
+	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
 }
 
 type Service struct {
@@ -84,6 +85,34 @@ func (s Service) Register(request RegisterRequest) (RegisterResponse, error) {
 func hashPassword(password string) string {
 	bytes, _ := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes)
+}
+
+type LoginRequest struct {
+	PhoneNumber string `json:"phone_number"`
+	Password    string `json:"password"`
+}
+
+type LoginResponse struct {
+}
+
+func (s Service) Login(req LoginRequest) (LoginResponse, error) {
+	// TODO - it would be better to user have two separate method for getByPhoneNumber and checkExistence
+
+	if user, exist, gErr := s.Repository.GetUserByPhoneNumber(req.PhoneNumber); gErr != nil {
+
+		return LoginResponse{}, fmt.Errorf("enexpected error: %w", gErr)
+	} else {
+		if exist {
+			if checkPasswordHash(req.Password, user.Password) {
+
+				return LoginResponse{}, nil
+			}
+		}
+
+		return LoginResponse{}, fmt.Errorf("phone-number or password is not correct")
+	}
+
+	return LoginResponse{}, nil
 }
 
 func checkPasswordHash(password, hash string) bool {

@@ -11,11 +11,14 @@ import (
 )
 
 func main() {
+	//us := userservice.New(mysql.New())
+	//fmt.Println(us.Login(userservice.LoginRequest{"09121131116", "12345678"}))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/check", checkHandler)
 	mux.HandleFunc("/users/register", userRegisterHandler)
 	//http.HandleFunc("/users/register", userRegisterHandler)
+	mux.HandleFunc("/users/login", userLoginHandler)
 	http.ListenAndServe(":2020", mux)
 	log.Println("server is listening on port 2020 ...")
 
@@ -44,9 +47,32 @@ func userRegisterHandler(res http.ResponseWriter, req *http.Request) {
 	} else {
 		uReq := userservice.RegisterRequest{}
 		json.Unmarshal(data, &uReq)
+
 		us := userservice.New(mysql.New())
 		res.Write([]byte(
 			fmt.Sprint(us.Register(uReq)),
+		))
+
+	}
+}
+func userLoginHandler(res http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodPost {
+		fmt.Fprintf(res, `{"error":"invalid method"}`)
+
+		return
+	}
+
+	if data, rErr := io.ReadAll(req.Body); rErr != nil {
+		res.Write([]byte(
+			fmt.Sprintf(`{"error":"%s"}`, rErr),
+		))
+	} else {
+		uReq := userservice.LoginRequest{}
+		json.Unmarshal(data, &uReq)
+		us := userservice.New(mysql.New())
+		res.Write([]byte(
+			fmt.Sprint(us.Login(uReq)),
 		))
 
 	}

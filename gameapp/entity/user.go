@@ -4,5 +4,6 @@ type User struct {
 	ID          int
 	Name        string
 	PhoneNumber string
-	Password    string
+	// Password keep hashed
+	Password string
 }
