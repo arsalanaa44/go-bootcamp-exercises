@@ -4,13 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"gameapp/repository/mysql"
+	"gameapp/service/authservice"
 	"gameapp/service/userservice"
 	"io"
 	"net/http"
+	"strings"
+	"time"
 )
 
 const (
-	JwtSignKey = "jwt_secret"
+	JwtSignKey                     = "jwt_secret"
+	AccessTokenSubject             = "at"
+	RefreshTokenSubject            = "rt"
+	AccessTokenExpirationDuration  = time.Duration(time.Hour * 7)
+	RefreshTokenExpirationDuration = time.Duration(time.Hour * 7 * 24)
 )
 
 func main() {
@@ -53,7 +60,9 @@ func userRegisterHandler(res http.ResponseWriter, req *http.Request) {
 
 		uReq := userservice.RegisterRequest{}
 		json.Unmarshal(data, &uReq)
-		us := userservice.New(mysql.New(), JwtSignKey)
+		authSvc := authservice.New(JwtSignKey, AccessTokenSubject, RefreshTokenSubject,
+			AccessTokenExpirationDuration, RefreshTokenExpirationDuration)
+		us := userservice.New(mysql.New(), authSvc)
 		if _, lErr := us.Register(uReq); lErr != nil {
 			res.Write([]byte(
 				fmt.Sprintf(`{"error": "%s"}`, lErr),
@@ -87,7 +96,9 @@ func userLoginHandler(res http.ResponseWriter, req *http.Request) {
 
 			return
 		}
-		us := userservice.New(mysql.New(), JwtSignKey)
+		authSvc := authservice.New(JwtSignKey, AccessTokenSubject, RefreshTokenSubject,
+			AccessTokenExpirationDuration, RefreshTokenExpirationDuration)
+		us := userservice.New(mysql.New(), authSvc)
 		if uRes, lErr := us.Login(uReq); lErr != nil {
 			res.Write([]byte(
 				fmt.Sprintf(`{"error": "%s"}`, lErr),
@@ -95,6 +106,7 @@ func userLoginHandler(res http.ResponseWriter, req *http.Request) {
 
 			return
 		} else {
+
 			data, _ = json.Marshal(uRes)
 			res.Write(data)
 		}
@@ -115,39 +127,64 @@ func userProfileHandler(res http.ResponseWriter, req *http.Request) {
 
 	//jwtToken := req.Header.Get("Authorization")
 	// validate jwt token and retrieve user ID from payload
+	//
+	//if data, rErr := io.ReadAll(req.Body); rErr != nil {
+	//	res.Write([]byte(
+	//		fmt.Sprintf(`{"error":"%s"}`, rErr),
+	//	))
+	//} else {
+	//	uReq := userservice.ProfileRequest{}
+	//	if jErr := json.Unmarshal(data, &uReq); jErr != nil {
+	//		res.Write([]byte(
+	//			fmt.Sprintf(`{"error": "%s"}`, jErr),
+	//		))
+	//
+	//		return
+	//	}
 
-	if data, rErr := io.ReadAll(req.Body); rErr != nil {
+	authSvc := authservice.New(JwtSignKey, AccessTokenSubject, RefreshTokenSubject,
+		AccessTokenExpirationDuration, RefreshTokenExpirationDuration)
+	tokenString, _ := verifyAuthHeader(req.Header.Get("Authorization"))
+	claims, _ := authSvc.ParseToken(tokenString)
+	uReq := userservice.ProfileRequest{claims.UserID}
+	us := userservice.New(mysql.New(), authSvc)
+	if pRes, lErr := us.Profile(uReq); lErr != nil {
 		res.Write([]byte(
-			fmt.Sprintf(`{"error":"%s"}`, rErr),
+			fmt.Sprintf(`{"error": "%s"}`, lErr),
 		))
+
+		return
 	} else {
-		uReq := userservice.ProfileRequest{}
-		if jErr := json.Unmarshal(data, &uReq); jErr != nil {
-			res.Write([]byte(
-				fmt.Sprintf(`{"error": "%s"}`, jErr),
-			))
-
-			return
-		}
-		us := userservice.New(mysql.New(), JwtSignKey)
-		if pRes, lErr := us.Profile(uReq); lErr != nil {
-			res.Write([]byte(
-				fmt.Sprintf(`{"error": "%s"}`, lErr),
-			))
-
-			return
+		//res.Write([]byte(
+		//	fmt.Sprintf(`{"message": "user name is %v"}`, pRes.Name),
+		//))
+		data, jErr := json.Marshal(pRes)
+		if jErr != nil {
+			fmt.Println("error in json-marshal: %w", jErr)
 		} else {
-			//res.Write([]byte(
-			//	fmt.Sprintf(`{"message": "user name is %v"}`, pRes.Name),
-			//))
-			data, jErr := json.Marshal(pRes)
-			if jErr != nil {
-				fmt.Println("error in json-marshal: %w", jErr)
-			} else {
-				res.Write(data)
-			}
-
+			res.Write(data)
 		}
 
 	}
+
+}
+
+func verifyAuthHeader(authHeader string) (string, error) {
+	// Get the Authorization header value
+
+	if authHeader == "" {
+
+		return "", fmt.Errorf("401, you did not set a proper token")
+	}
+
+	// Check that the Authorization header is in the Bearer format
+	authHeaderParts := strings.Split(authHeader, " ")
+	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
+		return "", fmt.Errorf("401, you did not set a proper token")
+	}
+
+	// Extract the JWT token string
+	return authHeaderParts[1], nil
+
+	// The token is valid and the user is authorized, so continue with the handler logic...
 }

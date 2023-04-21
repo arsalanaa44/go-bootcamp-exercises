@@ -6,10 +6,7 @@ import (
 	"gameapp/pkg/phonenumber"
 	//"github.com/golang-jwt/jwt/v5"
 
-	//jwt "github.com/golang-jwt/jwt/v5"
-	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
-	"time"
 )
 
 type Repository interface {
@@ -19,13 +16,18 @@ type Repository interface {
 	GetUserByID(userID int) (entity.User, error)
 }
 
-type Service struct {
-	Repository Repository
-	signKey    string
+type AuthGenerator interface {
+	CreateAccessToken(user entity.User) (string, error)
+	CreateRefreshToken(user entity.User) (string, error)
 }
 
-func New(repository Repository, signKey string) Service {
-	return Service{repository, signKey}
+type Service struct {
+	Repository Repository
+	auth       AuthGenerator
+}
+
+func New(repository Repository, auth AuthGenerator) Service {
+	return Service{repository, auth}
 }
 
 type RegisterRequest struct {
@@ -100,7 +102,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	AccessToken string `json:"access_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -113,12 +116,18 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 		if exist {
 			if checkPasswordHash(req.Password, user.Password) {
 
-				if token, cErr := createToken(user.ID, []byte(s.signKey)); cErr != nil {
+				if aToken, cErr := s.auth.CreateAccessToken(user); cErr != nil {
 
 					return LoginResponse{}, fmt.Errorf("enexpected error: %w", cErr)
 				} else {
 
-					return LoginResponse{token}, nil
+					if rToken, cErr := s.auth.CreateRefreshToken(user); cErr != nil {
+
+						return LoginResponse{}, fmt.Errorf("enexpected error: %w", cErr)
+					} else {
+
+						return LoginResponse{aToken, rToken}, nil
+					}
 				}
 			}
 		}
@@ -189,31 +198,31 @@ func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
 
 //var jwtKey = []byte("your_secret_key")
 
-// Claims struct to define the JWT claims
-type Claims struct {
-	UserID int `json:"user_id"`
-	jwt.StandardClaims
-}
-
-// CreateToken function to create JWT token
-func createToken(userID int, jwtKey []byte) (string, error) {
-	// Define token expiration time
-	expirationTime := time.Now().Add(5 * time.Hour)
-
-	// Define token claims
-	claims := &Claims{
-		UserID: userID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
-	}
-
-	// Create token using HS256 algorithm and the secret key
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
-}
+//// Claims struct to define the JWT claims
+//type Claims struct {
+//	UserID             int `json:"user_id"`
+//	jwt.StandardClaims     // it's not a field, inheritance, true json tags
+//}
+//
+//// CreateToken function to create JWT token
+//func createToken(userID int, jwtKey []byte) (string, error) {
+//	// Define token expiration time
+//	expirationTime := time.Now().Add(5 * time.Hour)
+//
+//	// Define token claims
+//	claims := &Claims{
+//		UserID: userID,
+//		StandardClaims: jwt.StandardClaims{
+//			ExpiresAt: expirationTime.Unix(),
+//		},
+//	}
+//
+//	// Create token using HS256 algorithm and the secret key
+//	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+//	tokenString, err := token.SignedString(jwtKey)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	return tokenString, nil
+//}
