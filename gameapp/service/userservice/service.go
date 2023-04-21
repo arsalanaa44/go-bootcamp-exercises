@@ -4,21 +4,28 @@ import (
 	"fmt"
 	"gameapp/entity"
 	"gameapp/pkg/phonenumber"
+	//"github.com/golang-jwt/jwt/v5"
+
+	//jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
+	"time"
 )
 
 type Repository interface {
 	IsPhoneNumberUnique(phoneNumber string) (bool, error)
 	Register(user entity.User) (entity.User, error)
 	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
+	GetUserByID(userID int) (entity.User, error)
 }
 
 type Service struct {
 	Repository Repository
+	signKey    string
 }
 
-func New(repository Repository) Service {
-	return Service{repository}
+func New(repository Repository, signKey string) Service {
+	return Service{repository, signKey}
 }
 
 type RegisterRequest struct {
@@ -93,6 +100,7 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
+	AccessToken string `json:"access_token"`
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -105,17 +113,107 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 		if exist {
 			if checkPasswordHash(req.Password, user.Password) {
 
-				return LoginResponse{}, nil
+				if token, cErr := createToken(user.ID, []byte(s.signKey)); cErr != nil {
+
+					return LoginResponse{}, fmt.Errorf("enexpected error: %w", cErr)
+				} else {
+
+					return LoginResponse{token}, nil
+				}
 			}
 		}
 
 		return LoginResponse{}, fmt.Errorf("phone-number or password is not correct")
 	}
 
-	return LoginResponse{}, nil
+	// generate random session ID
+	// save session ID in database
+	// return session_ID to user
 }
 
 func checkPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+type ProfileRequest struct {
+	UserID int `json:"user_id"`
+}
+
+type ProfileResponse struct {
+	Name string `json:"name"`
+}
+
+// all request services should be sanitized
+func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
+	user, gErr := s.Repository.GetUserByID(req.UserID)
+	if gErr != nil {
+		// we assume input is sanitized/
+		// TODO - we can use richError
+		return ProfileResponse{}, fmt.Errorf("unexpected error: %w", gErr)
+	}
+	return ProfileResponse{Name: user.Name}, nil
+}
+
+//type Claims struct {
+//	RegisteredClaims jwt.RegisteredClaims
+//	UserID           int
+//}
+//
+//func (c Claims) Valid() error {
+//	return nil
+//}
+//func createToken(userID int, signKey string) (string, error) {
+//	// create a signer for rsa 256
+//	// TODO - rsa 256- https://github.com/golang-jwt/jwt/blob/main/http_example_test.go
+//	//t := jwt.New(jwt.GetSigningMethod("RS256"))
+//
+//	// set our claims
+//	claims := Claims{
+//		jwt.RegisteredClaims{
+//			// set the expire time
+//			// see https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4
+//			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 3)),
+//		},
+//		userID,
+//	}
+//	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+//	if tokenString, err := accessToken.SigningString([]byte(signKey)); err != nil {
+//
+//		return "", err
+//	} else {
+//
+//		return tokenString, nil
+//	}
+//}
+
+//var jwtKey = []byte("your_secret_key")
+
+// Claims struct to define the JWT claims
+type Claims struct {
+	UserID int `json:"user_id"`
+	jwt.StandardClaims
+}
+
+// CreateToken function to create JWT token
+func createToken(userID int, jwtKey []byte) (string, error) {
+	// Define token expiration time
+	expirationTime := time.Now().Add(5 * time.Hour)
+
+	// Define token claims
+	claims := &Claims{
+		UserID: userID,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expirationTime.Unix(),
+		},
+	}
+
+	// Create token using HS256 algorithm and the secret key
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }
