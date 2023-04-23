@@ -7,32 +7,30 @@ import (
 	"time"
 )
 
-type Service struct {
-	signKey               string
-	accessExpirationTime  time.Duration
-	refreshExpirationTime time.Duration
-	accessSubject         string
-	refreshSubject        string
+type Config struct {
+	SignKey               string
+	AccessExpirationTime  time.Duration
+	RefreshExpirationTime time.Duration
+	AccessSubject         string
+	RefreshSubject        string
 }
 
-func New(signKey, accessSubject, refreshSubject string,
-	accessExpirationTime, refreshExpirationTime time.Duration) Service {
-	return Service{
-		signKey,
-		accessExpirationTime,
-		refreshExpirationTime,
-		accessSubject,
-		refreshSubject,
-	}
+type Service struct {
+	config Config
 }
+
+func New(cfg Config) Service {
+	return Service{cfg}
+}
+
 func (s Service) CreateAccessToken(user entity.User) (string, error) {
 
-	return createToken(user.ID, []byte(s.signKey), s.accessSubject, s.accessExpirationTime)
+	return createToken(user.ID, []byte(s.config.SignKey), s.config.AccessSubject, s.config.AccessExpirationTime)
 }
 
 func (s Service) CreateRefreshToken(user entity.User) (string, error) {
 
-	return createToken(user.ID, []byte(s.signKey), s.refreshSubject, s.refreshExpirationTime)
+	return createToken(user.ID, []byte(s.config.SignKey), s.config.RefreshSubject, s.config.RefreshExpirationTime)
 }
 
 func (s Service) ParseToken(tokenString string) (*Claims, error) {
@@ -43,7 +41,7 @@ func (s Service) ParseToken(tokenString string) (*Claims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		return []byte(s.signKey), nil
+		return []byte(s.config.SignKey), nil
 	})
 	if err != nil {
 		return nil, err

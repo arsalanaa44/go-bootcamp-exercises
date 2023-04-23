@@ -36,7 +36,12 @@ type RegisterRequest struct {
 	Password    string `json:"password"`
 }
 type RegisterResponse struct {
-	User entity.User
+	//User entity.User `json:"user"`
+	User struct {
+		ID          int    `json:"id"`
+		Name        string `json:"name"`
+		PhoneNumber string `json:"phoneNumber"`
+	} `json:"user"`
 }
 
 func (s Service) Register(request RegisterRequest) (RegisterResponse, error) {
@@ -88,7 +93,13 @@ func (s Service) Register(request RegisterRequest) (RegisterResponse, error) {
 	}
 
 	// return created user
-	return RegisterResponse{user}, nil
+	// TODO - assign anonymous struct
+	var regRes RegisterResponse
+	regRes.User.ID = user.ID
+	regRes.User.Name = user.Name
+	regRes.User.PhoneNumber = user.PhoneNumber
+
+	return regRes, nil
 }
 
 func hashPassword(password string) string {
