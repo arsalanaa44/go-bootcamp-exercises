@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gameapp/entity"
 	"github.com/dgrijalva/jwt-go"
+	"strings"
 	"time"
 )
 
@@ -35,6 +36,7 @@ func (s Service) CreateRefreshToken(user entity.User) (string, error) {
 
 func (s Service) ParseToken(tokenString string) (*Claims, error) {
 
+	tokenString = strings.Replace(tokenString, "Bearer ", "", -1)
 	// Parse token to extract claims
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		// Check signing method
@@ -78,3 +80,23 @@ func createToken(userID int, jwtKey []byte, subject string, expireAt time.Durati
 
 	return tokenString, nil
 }
+
+//func verifyAuthHeader(authHeader string) (string, error) {
+//	// Get the Authorization header value
+//
+//	if authHeader == "" {
+//
+//		return "", fmt.Errorf("401, you did not set a proper token")
+//	}
+//
+//	// Check that the Authorization header is in the Bearer format
+//	authHeaderParts := strings.Split(authHeader, " ")
+//	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
+//		return "", fmt.Errorf("401, you did not set a proper token")
+//	}
+//
+//	// Extract the JWT token string
+//	return authHeaderParts[1], nil
+//
+//	// The token is valid and the user is authorized, so continue with the handler logic...
+//}

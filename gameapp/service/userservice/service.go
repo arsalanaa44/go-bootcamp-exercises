@@ -107,14 +107,25 @@ func hashPassword(password string) string {
 	return string(bytes)
 }
 
+type userInfo struct {
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	PhoneNumber string `json:"phoneNumber"`
+}
+
 type LoginRequest struct {
 	PhoneNumber string `json:"phone_number"`
 	Password    string `json:"password"`
 }
 
-type LoginResponse struct {
+type Tokens struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+}
+
+type LoginResponse struct {
+	UserInfo userInfo `json:"user_info"`
+	Tokens   Tokens   `json:"tokens"`
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -137,7 +148,17 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 						return LoginResponse{}, fmt.Errorf("enexpected error: %w", cErr)
 					} else {
 
-						return LoginResponse{aToken, rToken}, nil
+						return LoginResponse{
+							userInfo{
+								user.ID,
+								user.Name,
+								user.PhoneNumber,
+							},
+							Tokens{
+								aToken,
+								rToken,
+							},
+						}, nil
 					}
 				}
 			}

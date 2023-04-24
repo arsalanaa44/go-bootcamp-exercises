@@ -5,3 +5,6 @@ CREATE TABLE users (
     password text not null,
     created_at timestamp default current_timestamp
 );
+
+// for migration
+    alter table users add column password text not null;
